@@ -63,7 +63,18 @@ module Spaceship
     end
 
     def initialize
-      @client = Faraday.new(self.class.hostname) do |c|
+        options = {
+          :request => {
+            :timeout      => 180,
+            :open_timeout => 180
+          }
+        }
+        @client = Faraday.new(self.class.hostname, options) do |c|
+        c.request :retry, max: 3, interval: 3.0,
+                       exceptions: [Errno::ETIMEDOUT,
+                                    Errno::EPROTOTYPE, # see http://erickt.github.io/blog/2014/11/19/adventures-in-debugging-a-potential-osx-kernel-bug/
+                                    'Timeout::Error',
+                                    Faraday::Error::TimeoutError, Faraday::TimeoutError]
         c.response :json, content_type: /\bjson$/
         c.response :xml, content_type: /\bxml$/
         c.response :plist, content_type: /\bplist$/
@@ -241,9 +252,9 @@ module Spaceship
     end
 
     # Actually sends the request to the remote server
-    # Automatically retries the request up to 3 times if something goes wrong
+    # [DISABLED as we use Faraday's own retry mechanism] Automatically retries the request up to 5 times if something goes wrong
     def send_request(method, url_or_path, params, headers, &block)
-      with_retry do
+      with_retry(1) do
         response = @client.send(method, url_or_path, params, headers, &block)
         if response.body.to_s.include?("<title>302 Found</title>")
           raise AppleTimeoutError.new, "Apple 302 detected"

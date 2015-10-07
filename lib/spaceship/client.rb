@@ -62,8 +62,8 @@ module Spaceship
     def initialize
         options = {
           :request => {
-            :timeout      => 180,
-            :open_timeout => 180
+            :timeout      => 300,
+            :open_timeout => 300
           }
         }
         @client = Faraday.new(self.class.hostname, options) do |c|

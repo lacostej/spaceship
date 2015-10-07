@@ -700,17 +700,17 @@ module Spaceship
 
     # the contentProviderIr found in the UserDetail instance
     def content_provider_id
-      user_detail_data.content_provider_id
+      @content_provider_id ||= user_detail_data.content_provider_id
     end
 
     # the ssoTokenForImage found in the AppVersionRef instance
     def sso_token_for_image
-      ref_data.sso_token_for_image
+      @sso_token_for_image ||= ref_data.sso_token_for_image
     end
 
     # the ssoTokenForVideo found in the AppVersionRef instance
     def sso_token_for_video
-      ref_data.sso_token_for_video
+      @sso_token_for_video ||= ref_data.sso_token_for_video
     end
 
     def update_tester_from_app!(tester, app_id, testing)

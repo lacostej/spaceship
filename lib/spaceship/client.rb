@@ -64,6 +64,7 @@ module Spaceship
         c.response :json, content_type: /\bjson$/
         c.response :xml, content_type: /\bxml$/
         c.response :plist, content_type: /\bplist$/
+        c.use FaradayMiddleware::FollowRedirects, limit: 3
         c.adapter Faraday.default_adapter
 
         if ENV['DEBUG']

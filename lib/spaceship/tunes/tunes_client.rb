@@ -5,6 +5,12 @@ module Spaceship
     class ITunesConnectError < StandardError
     end
 
+    class ITunesConnectTemporaryError < ITunesConnectError
+    end
+
+    class ITunesConnectUnauthorizedAccess < ITunesConnectError
+    end
+
     attr_reader :du_client
 
     def initialize
@@ -139,11 +145,18 @@ module Spaceship
       # Sometimes there is a different kind of error in the JSON response
       # e.g. {"warn"=>nil, "error"=>["operation_failed"], "info"=>nil}
       different_error = raw.fetch('messages', {}).fetch('error', nil)
-      errors << different_error if different_error
+      errors.concat different_error if different_error
+
+      logger.info("ERRORS: '#{errors.join(' ')}' #{errors.count == 1} '#{errors.first}' #{errors.first == 'Unauthorized access'}")
+      logger.info("ERRORS: #{errors.join(' ')}")
 
       if errors.count > 0 # they are separated by `.` by default
         if errors.count == 1 and errors.first == "You haven't made any changes."
           # This is a special error which we really don't care about
+        elsif errors.count == 1 and errors.first == "Unauthorized access"
+          raise ITunesConnectUnauthorizedAccess.new
+        elsif errors.count == 1 and errors.first == "We're temporarily unable to save your changes. Please try again later."
+          raise ITunesConnectTemporaryError.new
         else
           raise ITunesConnectError.new, errors.join(' ')
         end
@@ -271,13 +284,24 @@ module Spaceship
       raise "app_id is required" unless app_id
       raise "version_id is required" unless version_id.to_i > 0
 
-      r = request(:post) do |req|
-        req.url "ra/apps/#{app_id}/platforms/ios/versions/#{version_id}"
-        req.body = data.to_json
-        req.headers['Content-Type'] = 'application/json'
-      end
+      tries = 2
+      begin
+        r = request(:post) do |req|
+          req.url "ra/apps/#{app_id}/platforms/ios/versions/#{version_id}"
+          req.body = data.to_json
+          req.headers['Content-Type'] = 'application/json'
+        end
 
-      handle_itc_response(r.body)
+        handle_itc_response(r.body)
+      rescue ITunesConnectTemporaryError
+        logger.debug("Temporary error... retrying...")
+        sleep 5
+        retry
+      rescue ITunesConnectUnauthorizedAccess
+        tries -= 1
+        logger.debug("Unauthorized access... retrying...")
+        retry if tries > 0
+      end
     end
 
     #####################################################

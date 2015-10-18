@@ -4,6 +4,7 @@ require 'faraday_middleware'
 require 'spaceship/ui'
 require 'spaceship/helper/plist_middleware'
 require 'spaceship/helper/net_http_generic_request'
+#require 'net-http-persistent'
 
 if ENV["DEBUG"]
   require 'openssl'
@@ -78,7 +79,7 @@ module Spaceship
         c.response :json, content_type: /\bjson$/
         c.response :xml, content_type: /\bxml$/
         c.response :plist, content_type: /\bplist$/
-        c.adapter Faraday.default_adapter
+        c.adapter Faraday.default_adapter #:net_http_persistent
 
         if ENV['DEBUG']
           # for debugging only
@@ -219,7 +220,7 @@ module Spaceship
         headers.merge!({ 'Cookie' => cookie })
         headers.merge!(csrf_tokens)
       end
-      headers.merge!({ 'User-Agent' => 'spaceship' })
+      headers.merge!({ 'User-Agent' => ENV['SPACESHIP_USER_AGENT'] || 'spaceship' })
 
       # Before encoding the parameters, log them
       log_request(method, url_or_path, params)
@@ -254,7 +255,7 @@ module Spaceship
     # Actually sends the request to the remote server
     # [DISABLED as we use Faraday's own retry mechanism] Automatically retries the request up to 5 times if something goes wrong
     def send_request(method, url_or_path, params, headers, &block)
-      with_retry(1) do
+      with_retry(2) do
         response = @client.send(method, url_or_path, params, headers, &block)
         if response.body.to_s.include?("<title>302 Found</title>")
           raise AppleTimeoutError.new, "Apple 302 detected"

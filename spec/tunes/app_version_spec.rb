@@ -506,6 +506,24 @@ describe Spaceship::AppVersion, all: true do
           end.to raise_error "cannot remove screenshot with non existing sort_order"
         end
       end
+
+      describe "Handle server errors" do
+        it "can retry once times" do
+          du_upload_screenshot_server_error
+
+          count = version.screenshots["English"].count
+          version.upload_screenshot!(screenshot_path, 3, "English", 'iphone4')
+          expect(version.screenshots["English"].count).to eq(count + 1)
+        end
+
+        it "fails if it tried maximum number of times" do
+          du_upload_screenshot_server_error
+
+          count = version.screenshots["English"].count
+          version.upload_screenshot!(screenshot_path, 3, "English", 'iphone4')
+          expect(version.screenshots["English"].count).to eq(count + 1)
+        end
+      end      
     end
 
     it "allows modifications of localized values" do

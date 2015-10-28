@@ -8,8 +8,8 @@ module Spaceship
     class ITunesConnectTemporaryError < ITunesConnectError
     end
 
-    class ITunesConnectUnauthorizedAccess < ITunesConnectError
-    end
+    #class ITunesConnectUnauthorizedAccess < ITunesConnectError
+    #end
 
     attr_reader :du_client
 
@@ -153,8 +153,8 @@ module Spaceship
       if errors.count > 0 # they are separated by `.` by default
         if errors.count == 1 and errors.first == "You haven't made any changes."
           # This is a special error which we really don't care about
-        elsif errors.count == 1 and errors.first == "Unauthorized access"
-          raise ITunesConnectUnauthorizedAccess.new
+        #elsif errors.count == 1 and errors.first == "Unauthorized access"
+        #  raise ITunesConnectUnauthorizedAccess.new
         elsif errors.count == 1 and errors.first == "We're temporarily unable to save your changes. Please try again later."
           raise ITunesConnectTemporaryError.new
         else
@@ -295,12 +295,13 @@ module Spaceship
         handle_itc_response(r.body)
       rescue ITunesConnectTemporaryError
         logger.debug("Temporary error... retrying...")
-        sleep 5
-        retry
-      rescue ITunesConnectUnauthorizedAccess
+        sleep 10
         tries -= 1
-        logger.debug("Unauthorized access... retrying...")
         retry if tries > 0
+      #rescue ITunesConnectUnauthorizedAccess
+      #  tries -= 1
+      #  logger.debug("Unauthorized access... retrying...")
+      #  retry if tries > 0
       end
     end
 

@@ -78,21 +78,21 @@ module Spaceship
         #  - woinst
         #  - wosid
         #  - itctx
-        begin
-          re = response['Set-Cookie']
+      #  begin
+      #    re = response['Set-Cookie']
 
-          to_use = [
-            "myacinfo=" + re.match(/myacinfo=([^;]*)/)[1],
-            "woinst=" + re.match(/woinst=([^;]*)/)[1],
-            "itctx=" + re.match(/itctx=([^;]*)/)[1],
-            "wosid=" + re.match(/wosid=([^;]*)/)[1]
-          ]
+      #    to_use = [
+      #      "myacinfo=" + re.match(/myacinfo=([^;]*)/)[1],
+      #      "woinst=" + re.match(/woinst=([^;]*)/)[1],
+      #      "itctx=" + re.match(/itctx=([^;]*)/)[1],
+      #      "wosid=" + re.match(/wosid=([^;]*)/)[1]
+      #    ]
 
-          @cookie = to_use.join(';')
-        rescue
-          raise ITunesConnectError.new, [response.body, response['Set-Cookie']].join("\n")
-        end
-
+      #    @cookie = to_use.join(';')
+      #  rescue
+      #    raise ITunesConnectError.new, [response.body, response['Set-Cookie']].join("\n")
+      #  end
+        @cookie = "we got some cookies!"
         return @client
       else
         if (response.body || "").include?("Your Apple ID or password was entered incorrectly")

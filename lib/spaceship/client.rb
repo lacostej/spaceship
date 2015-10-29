@@ -1,6 +1,8 @@
 require 'faraday' # HTTP Client
 require 'logger'
 require 'faraday_middleware'
+require 'faraday-cookie_jar'
+#require 'faraday_csrf'
 require 'spaceship/ui'
 require 'spaceship/helper/plist_middleware'
 require 'spaceship/helper/net_http_generic_request'
@@ -71,11 +73,17 @@ module Spaceship
           }
         }
         @client = Faraday.new(self.class.hostname, options) do |c|
+        #c.use :csrf
+        #c.request :url_encoded
+        c.use :cookie_jar
+
         c.request :retry, max: 3, interval: 3.0,
                        exceptions: [Errno::ETIMEDOUT,
                                     Errno::EPROTOTYPE, # see http://erickt.github.io/blog/2014/11/19/adventures-in-debugging-a-potential-osx-kernel-bug/
                                     'Timeout::Error',
-                                    Faraday::Error::TimeoutError, Faraday::TimeoutError]
+                                    Faraday::Error::TimeoutError,
+                                    Faraday::TimeoutError,
+                                    Faraday::ConnectionFailed]
         c.response :json, content_type: /\bjson$/
         c.response :xml, content_type: /\bxml$/
         c.response :plist, content_type: /\bplist$/
@@ -181,6 +189,7 @@ module Spaceship
       end
     end
 
+    # FIXME deprecated ??
     # @return (Bool) Do we have a valid session?
     def session?
       !!@cookie
@@ -217,7 +226,7 @@ module Spaceship
 
     def request(method, url_or_path = nil, params = nil, headers = {}, &block)
       if session?
-        headers.merge!({ 'Cookie' => cookie })
+        #headers.merge!({ 'Cookie' => cookie })
         headers.merge!(csrf_tokens)
       end
       headers.merge!({ 'User-Agent' => ENV['SPACESHIP_USER_AGENT'] || 'spaceship' })

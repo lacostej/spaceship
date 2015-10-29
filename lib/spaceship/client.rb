@@ -264,11 +264,11 @@ module Spaceship
     # Actually sends the request to the remote server
     # [DISABLED as we use Faraday's own retry mechanism] Automatically retries the request up to 5 times if something goes wrong
     def send_request(method, url_or_path, params, headers, &block)
-      with_retry(2) do
+      with_retry(1) do
         response = @client.send(method, url_or_path, params, headers, &block)
-        if response.body.to_s.include?("<title>302 Found</title>")
-          raise AppleTimeoutError.new, "Apple 302 detected"
-        end
+        #if response.body.to_s.include?("<title>302 Found</title>")
+        #  raise AppleTimeoutError.new, "Apple 302 detected"
+        #end
         return response
       end
     end

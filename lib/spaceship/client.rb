@@ -39,6 +39,8 @@ module Spaceship
     # Raised when 302 is received from portal request
     class AppleTimeoutError < StandardError; end
 
+    class UnauthorizedAccessError < StandardError; end
+
     # Authenticates with Apple's web services. This method has to be called once
     # to generate a valid session. The session will automatically be used from then
     # on.
@@ -170,7 +172,10 @@ module Spaceship
       self.user = user
 
       begin
-        send_login_request(user, password) # different in subclasses
+        @loggedin = false
+        ret = send_login_request(user, password) # different in subclasses
+        @loggedin = true
+        ret
       rescue InvalidUserCredentialsError => ex
         raise ex unless keychain_entry
 
@@ -189,6 +194,17 @@ module Spaceship
         logger.warn("Timeout received: '#{ex.message}'.  Retrying after 3 seconds (remaining: #{tries})...")
         sleep 3
         retry
+      end
+    rescue UnauthorizedAccessError => ex
+      if @loggedin
+        unless (tries -= 1).zero?
+          msg = "Auth error received: '#{ex.message}'.  Retrying after 3 seconds (remaining: #{tries})..."
+          puts msg
+          logger.warn msg
+          login # FIXME: We might not have the password here
+          sleep 3
+          retry
+        end
       end
 
       raise ex # re-raise the exception
@@ -250,6 +266,13 @@ module Spaceship
     def send_request(method, url_or_path, params, headers, &block)
       with_retry do
         response = @client.send(method, url_or_path, params, headers, &block)
+        @resp_hash = response.to_hash
+        if @resp_hash[:status] == 401
+          msg = "Auth lost"
+          logger.warn msg
+          raise UnauthorizedAccessError.new, "Unauthorized Access"
+        end
+
         if response.body.to_s.include?("<title>302 Found</title>")
           raise AppleTimeoutError.new, "Apple 302 detected"
         end

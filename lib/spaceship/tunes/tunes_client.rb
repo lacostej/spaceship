@@ -126,12 +126,16 @@ module Spaceship
         rememberMe: true
       }
 
-      response = request(:post) do |req|
-        req.url "https://idmsa.apple.com/appleauth/auth/signin?widgetKey=#{service_key}"
-        req.body = data.to_json
-        req.headers['Content-Type'] = 'application/json'
-        req.headers['X-Requested-With'] = 'XMLHttpRequest'
-        req.headers['Accept'] = 'application/json, text/javascript'
+      begin
+        response = request(:post) do |req|
+          req.url "https://idmsa.apple.com/appleauth/auth/signin?widgetKey=#{service_key}"
+          req.body = data.to_json
+          req.headers['Content-Type'] = 'application/json'
+          req.headers['X-Requested-With'] = 'XMLHttpRequest'
+          req.headers['Accept'] = 'application/json, text/javascript'
+        end
+      rescue UnauthorizedAccessError
+        raise InvalidUserCredentialsError.new, "Invalid username and password combination. Used '#{user}' as the username."
       end
 
       # get woinst, wois, and itctx cookie values
@@ -139,7 +143,8 @@ module Spaceship
       request(:get, "https://itunesconnect.apple.com/WebObjects/iTunesConnect.woa")
 
       case response.status
-      when 403, 401
+      when 403
+        # FIXME: This is more invalid permissions than invalid credentials
         raise InvalidUserCredentialsError.new, "Invalid username and password combination. Used '#{user}' as the username."
       when 200
         return response

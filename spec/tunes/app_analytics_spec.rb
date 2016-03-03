@@ -13,9 +13,9 @@ describe Spaceship::Tunes::AppAnalytics do
 
       pp units
 
-      expect(units.size).to eq(1)
+      expect(units.size).to eq(2)
 
-      val = units.results.find do |a|
+      val = units['results'].find do |a|
         a['adamId'].include?('898536088')
       end
 

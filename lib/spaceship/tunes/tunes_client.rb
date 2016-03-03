@@ -370,7 +370,7 @@ module Spaceship
         req.headers['X-Requested-By'] = 'analytics.itunes.apple.com'
       end
 
-      data = parse_response(r)
+      data = parse_response(r, 'data')['app_units']
     end
 
     #####################################################
